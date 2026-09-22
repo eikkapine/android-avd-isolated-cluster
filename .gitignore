@@ -1,0 +1,31 @@
+# Binaries & Executables
+*.exe
+*.dll
+*.so
+*.apk
+*.qcow2
+*.img
+
+# Network Configurations & Secrets
+*.conf
+*.toml
+*.key
+*.pub
+*.pem
+
+# Android Emulator runtime & locks
+*.lock
+*.log
+hardware-qemu.ini
+*.avd/*.lock
+
+# Capture Artifacts & Media
+artifacts/
+*.png
+*.jpg
+*.mp4
+
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
