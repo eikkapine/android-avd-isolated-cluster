@@ -45,7 +45,7 @@ Running multiple concurrent mobile virtual machines on a single workstation with
 ### Key Technical Pillars
 1. **Hypervisor Acceleration via WHPX:** Eliminates legacy VirtualBox/NEM engine deadlocks on modern Windows 11 systems with Core Isolation and Hyper-V enabled.
 2. **Resource Throttling & ANR Mitigation:** Default emulator skins (1080x2400 @ 420 DPI) thrash Android's `lowmemorykiller` when run in parallel. Downscaling to 720x1600 @ 320 DPI with 4 GB RAM and 512 MB VM heap cuts compositor load by >55% while maintaining full application compatibility.
-3. **Guest-Level TUN Isolation:** Rather than modifying the host's networking or relying on external proxy binaries that trip host security software, each Android guest establishes an isolated userspace VPN tunnel (`tun0`), directing egress traffic through separate gateways.
+3. **Guest-Level TUN Isolation:** Rather than modifying the host's networking or running proxy software on Windows, each Android guest establishes an isolated userspace VPN tunnel (`tun0`), directing egress traffic through separate gateways.
 
 ---
 
@@ -118,10 +118,9 @@ To verify IP isolation and assert zero host residential leaks:
 
 ---
 
-## 5. Security & Isolation Considerations
-- **No Host Contention:** All network tunneling occurs strictly within the virtualized guest OS; host interfaces remain untouched.
-- **WebRTC Hardening:** The Android OS routes all application-layer WebRTC traffic through the active default VPN interface (`tun0`), eliminating local IP leak vulnerabilities.
-- **Zero Hardcoded Secrets:** This repository contains no private keys, binary packages, or platform credentials.
+## 5. Network Isolation Notes
+- **Host Isolation:** All network tunneling occurs strictly inside the virtualized guest OS; host network adapters and routing tables remain untouched.
+- **WebRTC Leak Prevention:** The Android OS routes application-layer WebRTC traffic through the active default VPN interface (`tun0`), preventing host IP exposure.
 
 ---
 
