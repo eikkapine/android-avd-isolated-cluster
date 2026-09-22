@@ -13,7 +13,9 @@ $EmulatorExe = Join-Path $SdkRoot "emulator\emulator.exe"
 $AdbExe = Join-Path $SdkRoot "platform-tools\adb.exe"
 
 if (!(Test-Path $EmulatorExe)) {
-    throw "Emulator binary not found at $EmulatorExe"
+    # Check PATH fallback
+    $cmd = Get-Command emulator.exe -ErrorAction SilentlyContinue
+    if ($cmd) { $EmulatorExe = $cmd.Source } else { throw "Emulator binary not found at $EmulatorExe" }
 }
 
 Write-Host "=================================================================" -ForegroundColor Cyan
@@ -71,15 +73,19 @@ public class Win32 {
 }
 "@
 
+Add-Type -AssemblyName System.Windows.Forms
+$workArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+
 $Procs = Get-Process -Name "qemu-system-x86_64", "emulator" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Sort-Object Id
-$startX = 50
-$winWidth = 460
-$winHeight = 940
+$winWidth = [math]::Min(460, [int]($workArea.Width / [math]::Max($Count, 1)))
+$winHeight = [math]::Min(940, $workArea.Height - 50)
+$startX = [int](($workArea.Width - ($winWidth * $Procs.Count)) / 2)
+if ($startX -lt 10) { $startX = 10 }
 
 for ($i = 0; $i -lt $Procs.Count; $i++) {
     [Win32]::SetWindowPos($Procs[$i].MainWindowHandle, [IntPtr]::Zero, ($startX + ($i * $winWidth)), 40, $winWidth, $winHeight, 0x0040)
 }
-Write-Host "[OK] Detected $($Procs.Count) window(s) arranged across display." -ForegroundColor Green
+Write-Host "[OK] Detected $($Procs.Count) window(s) tiled across monitor." -ForegroundColor Green
 
 Write-Host "`n=================================================================" -ForegroundColor Cyan
 Write-Host " [PHASE 4] ACTIVATING ISOLATED GUEST TUNNELS" -ForegroundColor Cyan
@@ -112,4 +118,4 @@ for ($i = 0; $i -lt $Count; $i++) {
     & $AdbExe -s $serial shell "am start -a android.intent.action.VIEW -d https://ifconfig.me" 2>$null | Out-Null
 }
 
-Write-Host "[OK] Cluster orchestration complete. Browser verification triggered on all devices." -ForegroundColor Green
+Write-Host "[OK] Cluster orchestration complete. Browser verification opened on all devices." -ForegroundColor Green

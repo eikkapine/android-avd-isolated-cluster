@@ -16,7 +16,12 @@ param(
     [string]$SdkRoot = "$env:LOCALAPPDATA\Android\Sdk"
 )
 
-$AdbExe = Join-Path $SdkRoot "platform-tools\adb.exe"
+$AdbCmd = Get-Command adb -ErrorAction SilentlyContinue
+$AdbExe = if ($AdbCmd) { $AdbCmd.Source } else { Join-Path $SdkRoot "platform-tools\adb.exe" }
+
+if (!(Test-Path $AdbExe)) {
+    throw "adb binary not found at $AdbExe"
+}
 
 switch ($Action) {
     "UP" {

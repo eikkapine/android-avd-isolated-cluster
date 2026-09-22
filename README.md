@@ -1,24 +1,23 @@
 # Multi-Instance Android Virtual Device (AVD) Network Isolation Cluster
 
 > [!CAUTION]
-> ### ⚠️ FOR EDUCATIONAL AND SYSTEMS RESEARCH PURPOSES ONLY
-> This project is provided strictly as a technical reference and experimental harness for systems research, hypervisor orchestration study, and guest-network isolation testing.
+> ### ⚠️ Educational & Research Disclaimer
+> This project is a technical reference and experimental harness for systems research, hypervisor orchestration, and guest-level network isolation testing.
 >
-> **Strict Restrictions on Use:**
-> Under no circumstances may this software, documentation, or architecture be used for:
-> - Automated mass account registration or bot creation on third-party platforms.
-> - Bypassing platform access controls, security verification systems, rate-limiting engines, or anti-abuse mechanisms.
-> - Scraping, bulk data harvesting, impersonation, or actions in violation of any platform's Terms of Service.
-> 
-> The author explicitly rejects and condemns any form of unauthorized platform automation, policy circumvention, or malicious activity. Users assume all responsibility for compliance with relevant laws and service terms.
+> **Important:**
+> This repository is not designed or intended for:
+> - Automated account registration or botting on third-party services.
+> - Circumventing platform access controls, security verification systems, or rate limits.
+> - Scraping, bulk data harvesting, or any activity that violates third-party Terms of Service.
+>
+> The author does not endorse or support unauthorized platform automation or terms-of-service violations. Users are responsible for ensuring their usage complies with all relevant legal requirements and service terms.
 
 ---
 
 ## 1. Architectural Overview
 
-Running multiple concurrent mobile virtual machines on a single workstation without hardware virtualization conflicts or cross-instance networking leaks requires careful coordination across the hypervisor, compositor, and networking subsystems.
+Running multiple concurrent mobile virtual machines on a single workstation without hardware virtualization conflicts or cross-instance networking leaks requires coordination across the hypervisor, compositor, and networking layers.
 
-### Core Architecture Stack
 ```
 +-------------------------------------------------------------+
 |                      Host Workstation                       |
@@ -42,42 +41,31 @@ Running multiple concurrent mobile virtual machines on a single workstation with
   Unique Public IP 0             Unique Public IP 1             Unique Public IP 2
 ```
 
-### Key Technical Pillars
-1. **Hypervisor Acceleration via WHPX:** Eliminates legacy VirtualBox/NEM engine deadlocks on modern Windows 11 systems with Core Isolation and Hyper-V enabled.
-2. **Resource Throttling & ANR Mitigation:** Default emulator skins (1080x2400 @ 420 DPI) thrash Android's `lowmemorykiller` when run in parallel. Downscaling to 720x1600 @ 320 DPI with 4 GB RAM and 512 MB VM heap cuts compositor load by >55% while maintaining full application compatibility.
-3. **Guest-Level TUN Isolation:** Rather than modifying the host's networking or running proxy software on Windows, each Android guest establishes an isolated userspace VPN tunnel (`tun0`), directing egress traffic through separate gateways.
+### Engineering Details
+- **Hypervisor Acceleration (WHPX):** Modern Windows 11 systems with Core Isolation and Hyper-V enabled can deadlock or freeze legacy emulator engines (such as older VirtualBox builds running under NEM fallback). Running official Google AVDs on QEMU with Windows Hypervisor Platform (WHPX) acceleration provides native, stable virtualization.
+- **Memory & ANR Mitigation:** Default AVD profiles (1080×2400 @ 420 DPI) cause heavy memory thrashing under Android 13 when running multiple instances at once, triggering "System UI is not responding" freezes. Downscaling each virtual display to 720×1600 @ 320 DPI and allocating 4 GB RAM / 512 MB VM heap cuts compositor load by over 50% while keeping apps fully compatible.
+- **Guest-Level Network Isolation:** Rather than running proxy clients on the Windows host (which can trigger endpoint security or leak host DNS), each Android VM runs its own userspace WireGuard tunnel (`tun0`). Traffic from all apps within the VM is forced through the guest's VPN interface, giving each emulator an independent public egress IP.
 
 ---
 
-## 2. Prerequisites & Toolchain Setup
+## 2. Prerequisites
 
-### Host Requirements
-- Windows 10/11 (x64) with **Windows Hypervisor Platform** and **Hyper-V** enabled.
-- AMD Ryzen or Intel Core processor with nested hardware virtualization enabled in BIOS.
-- 16+ GB RAM recommended (4 GB allocated per virtual device).
-
-### Toolchain Components
-1. **Google Android SDK Command-Line Tools (`cmdline-tools`):**
-   - Provides `sdkmanager`, `avdmanager`, `emulator`, and `adb`.
-2. **Android 13 System Image (`system-images;android-33;google_apis;x86_64`):**
-   - High-compatibility 64-bit image optimized for hypervisor acceleration.
-3. **WireGuard for Android:**
-   - Deployed within guest VMs to manage TUN interface routing.
+- **OS:** Windows 10/11 (x64) with **Windows Hypervisor Platform** and **Hyper-V** enabled in Windows Features.
+- **Hardware:** AMD Ryzen or Intel Core CPU with hardware virtualization (SVM/VT-x) enabled in BIOS; 16+ GB RAM recommended.
+- **Tooling:** Android Studio (or standalone Android SDK Command-Line Tools) with platform-tools and emulator packages installed.
 
 ---
 
-## 3. Step-by-Step Provisioning
+## 3. Provisioning & Setup
 
-### Step 1: Initialize Android Virtual Devices
-Run the provisioning script to install SDK components and create the virtual devices:
+### Step 1: Provision Virtual Devices
+The initialization script accepts SDK licenses, pulls the Android 13 system image, and generates 3 AVDs with optimized hardware profiles:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\init_avd_cluster.ps1
 ```
 
-This generates 3 distinct AVD configurations (`Pixel7_Inst0`, `Pixel7_Inst1`, `Pixel7_Inst2`) with customized hardware definitions.
-
-### Step 2: Configure Virtual Hardware (`config.ini`)
-Ensure each AVD's `config.ini` in `$env:USERPROFILE\.android\avd\<Instance>.avd\` is configured for cluster stability:
+### Step 2: Virtual Hardware Configuration
+Each AVD's `config.ini` (located at `$env:USERPROFILE\.android\avd\<InstanceName>.avd\config.ini`) is pre-tuned with the following settings:
 ```ini
 hw.ramSize = 4G
 vm.heapSize = 512M
@@ -89,29 +77,33 @@ hw.gpu.mode = auto
 showDeviceFrame = no
 ```
 
-### Step 3: Launch Cluster & Auto-Tile
-Launch the cluster script to boot instances, wait for ADB availability, and arrange windows side-by-side:
+### Step 3: Configure Guest WireGuard Tunnels
+Copy a valid WireGuard configuration (see [`configs/wireguard_sample.conf`](configs/wireguard_sample.conf)) into each virtual device. Tunnels can be controlled programmatically using ADB broadcast intents:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\manage_tunnels.ps1 -Serial "emulator-5554" -TunnelName "wgcf0" -Action "UP"
+```
+
+### Step 4: Launch Cluster & Auto-Tile Windows
+Boot all instances concurrently, wait for ADB readiness, and auto-tile phone windows across your monitor:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\launch_avd_cluster.ps1
 ```
-
-### Step 4: Provision Guest-Level Tunnels
-Each instance requires an independent tunnel profile. Deploy WireGuard and import unique `.conf` configurations via ADB broadcast intents or configuration injection into the application datastore.
 
 ---
 
 ## 4. Verification & Diagnostics
 
-To verify IP isolation and assert zero host residential leaks:
-1. Verify active `tun0` interface status:
+Verify that each emulator routes traffic through its own tunnel and does not leak the host IP:
+
+1. **Check the `tun0` interface inside the guest:**
    ```powershell
    adb -s emulator-5554 shell "ip addr show tun0"
    ```
-2. Verify active VPN session in Android Connectivity Service:
+2. **Check active VPN session in Android Connectivity Service:**
    ```powershell
-   adb -s emulator-5554 shell "dumpsys connectivity | grep sessionId="
+   adb -s emulator-5554 shell "dumpsys connectivity | grep -E 'sessionId='"
    ```
-3. Check browser public egress IP across all running instances:
+3. **Check egress IP in the guest browser:**
    ```powershell
    adb -s emulator-5554 shell "am start -a android.intent.action.VIEW -d https://ifconfig.me"
    ```
@@ -119,7 +111,7 @@ To verify IP isolation and assert zero host residential leaks:
 ---
 
 ## 5. Network Isolation Notes
-- **Host Isolation:** All network tunneling occurs strictly inside the virtualized guest OS; host network adapters and routing tables remain untouched.
+- **Host Isolation:** Network tunneling occurs strictly inside the virtualized guest OS; host network adapters and routing tables remain untouched.
 - **WebRTC Leak Prevention:** The Android OS routes application-layer WebRTC traffic through the active default VPN interface (`tun0`), preventing host IP exposure.
 
 ---

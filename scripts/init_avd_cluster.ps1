@@ -12,21 +12,30 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host " [PHASE 1] ANDROID SDK VERIFICATION" -ForegroundColor Cyan
+Write-Host " [PHASE 1] ANDROID SDK DISCOVERY & LICENSES" -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
+# Locate cmdline-tools (support 'latest' or versioned subdirectories)
 $CmdlineTools = Join-Path $SdkRoot "cmdline-tools\latest\bin"
+if (!(Test-Path $CmdlineTools)) {
+    $parent = Join-Path $SdkRoot "cmdline-tools"
+    if (Test-Path $parent) {
+        $found = Get-ChildItem $parent -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+        if ($found) { $CmdlineTools = Join-Path $found.FullName "bin" }
+    }
+}
+
 $SdkManager = Join-Path $CmdlineTools "sdkmanager.bat"
 $AvdManager = Join-Path $CmdlineTools "avdmanager.bat"
 
 if (!(Test-Path $SdkManager)) {
-    throw "sdkmanager not found at $SdkManager. Please install Android Studio or SDK Command-Line Tools."
+    throw "sdkmanager not found at '$SdkManager'. Please install Android Studio or SDK Command-Line Tools."
 }
 
 Write-Host "[OK] SDK Tools detected at $CmdlineTools" -ForegroundColor Green
 
 # Accept all SDK licenses automatically
-Write-Host "Verifying SDK licenses..." -ForegroundColor Yellow
+Write-Host "Accepting SDK licenses..." -ForegroundColor Yellow
 & cmd.exe /c "echo y | `"$SdkManager`" --licenses" | Out-Null
 
 Write-Host "`n=================================================================" -ForegroundColor Cyan
@@ -45,7 +54,7 @@ for ($i = 0; $i -lt $InstanceCount; $i++) {
     
     & cmd.exe /c "echo no | `"$AvdManager`" create avd -n $avdName -k `"$SystemImage`" --device `"pixel_7`" --force"
     
-    # Tune hardware parameters for multi-instance stability
+    # Tune hardware parameters for cluster stability and ANR prevention
     $avdIni = Join-Path $env:USERPROFILE ".android\avd\$avdName.avd\config.ini"
     if (Test-Path $avdIni) {
         $content = Get-Content $avdIni
@@ -73,4 +82,4 @@ for ($i = 0; $i -lt $InstanceCount; $i++) {
     }
 }
 
-Write-Host "`n[OK] All $InstanceCount virtual devices successfully provisioned!" -ForegroundColor Green
+Write-Host "`n[OK] All $InstanceCount virtual devices successfully provisioned." -ForegroundColor Green
