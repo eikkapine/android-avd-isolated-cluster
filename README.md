@@ -2,7 +2,7 @@
 
 > [!CAUTION]
 > ### ⚠️ FOR EDUCATIONAL AND SYSTEMS RESEARCH PURPOSES ONLY
-> This repository is archived and provided strictly as an architectural reference and technical study in OS-level virtualization, hypervisor orchestration, and guest-network isolation.
+> This project is provided strictly as a technical reference and experimental harness for systems research, hypervisor orchestration study, and guest-network isolation testing.
 >
 > **Strict Restrictions on Use:**
 > Under no circumstances may this software, documentation, or architecture be used for:
