@@ -1,0 +1,13 @@
+{
+  "name": "android-fleet-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for a local Android device farm: fleet lifecycle and per-device UI automation over stdio",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

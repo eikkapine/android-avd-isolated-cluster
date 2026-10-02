@@ -29,3 +29,19 @@ artifacts/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Fleet runtime state (live.json, screenshots, per-device artifacts)
+fleet-state/
+screens/
+
+# Local operator files (accounts, tunnels, machine configs)
+accounts.json
+accounts_template.json
+wgcf*.conf
+START_CLUSTER.local.bat
+
+# Node
+node_modules/
+bun.lock
+__pycache__/
+*.pyc

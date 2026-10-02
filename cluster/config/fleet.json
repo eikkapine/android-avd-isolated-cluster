@@ -1,0 +1,20 @@
+{
+  "avd_home": "C:/Users/YOU/.android/avd",
+  "sdk_root": "C:/Android/Sdk",
+  "base_port": 5554,
+  "max_instances": 20,
+  "default_live_budget": 12,
+  "headless": true,
+  "system_image": "system-images;android-33;google_apis;x86_64",
+  "boot": {
+    "ram_mb": 1536,
+    "vcores": 2,
+    "vm_heap_mb": 256,
+    "gpu_mode": "swiftshader_indirect",
+    "lcd": {
+      "width": 720,
+      "height": 1600,
+      "density": 320
+    }
+  }
+}
